@@ -30,7 +30,8 @@ class Data(db.Model):
 @app.route('/search', methods=['GET'])
 def search():
     posts = Data.query.filter(Data.name.like(f'%{request.args.get("query")}%')).all()
-
+    count = str(Data.query.filter(Data.name.like(f'%{request.args.get("query")}%')).count())
+    flash(count+" result")
     return render_template("index.html", customers=posts)
 
 
