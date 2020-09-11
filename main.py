@@ -1,11 +1,12 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
+import names,functools,random
 
 app = Flask(__name__)
 app.secret_key = "Secret Key"
 
 # SqlAlchemy Database Configuration With sqlite
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/Dell/PycharmProjects/customermanagment/database.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/Dell/PycharmProjects/CustomerManagement/database.db' #edit your path acording to urself
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -83,6 +84,28 @@ def delete(id):
     db.session.commit()
     flash("Customer Deleted Successfully")
 
+    return redirect(url_for('Index'))
+
+# last to functions are just for test
+@app.route('/random1000')
+def randomuser():
+    for i in range(1000) :
+        a = functools.partial(random.randint, 0, 9)
+        gsm = lambda: "{}{}{}{}{}{}{}{}{}{}".format( a(), a(), a(), a(), a(), a(), a(), a(), a(), a())
+        tcno = lambda: "{}{}{}{}{}{}{}{}{}{}{}".format(a(), a(), a(), a(), a(), a(), a(), a(), a(), a(), a())
+
+        my_data = Data(names.get_full_name(), tcno(), gsm())
+        db.session.add(my_data)
+        db.session.commit()
+
+    flash("1000 Customer Inserted Successfully")
+
+    return redirect(url_for('Index'))
+
+@app.route('/delete_all')
+def delete_all():
+    db.drop_all()
+    db.create_all()
     return redirect(url_for('Index'))
 
 
