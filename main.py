@@ -7,7 +7,7 @@ app.secret_key = "Secret Key"
 
 # SqlAlchemy Database Configuration With sqlite
 app.config[
-    'SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/Dell/PycharmProjects/CustomerManagement/database.db'  # edit your path acording to urself
+    'SQLALCHEMY_DATABASE_URI'] = 'sqlite://///Users/emingenc/PycharmProjects/CustomerManagement/database.db'  # edit your path acording to urself
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -64,7 +64,7 @@ def login():
             if user and user.password == password:
                 session['user_id'] = user.id
                 return redirect(url_for('Index'))
-
+            flash("user name or password is wrong", "error")
             return redirect(url_for('login'))
         except: flash("user name or password is wrong","error")
 
