@@ -1,15 +1,26 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, session, g
 from flask_sqlalchemy import SQLAlchemy
-import names,functools,random
+import names, functools, random, time
 
 app = Flask(__name__)
 app.secret_key = "Secret Key"
 
 # SqlAlchemy Database Configuration With sqlite
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/Dell/PycharmProjects/CustomerManagement/database.db' #edit your path acording to urself
+app.config[
+    'SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/Dell/PycharmProjects/CustomerManagement/database.db'  # edit your path acording to urself
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
+
+
+class User:
+    def __init__(self, id, username, password):
+        self.id = id
+        self.username = username
+        self.password = password
+
+    def __repr__(self):
+        return f'<User: {self.username}>'
 
 
 # Creating model table
@@ -26,17 +37,55 @@ class Data(db.Model):
         self.phone = phone
 
 
+users = []
+users.append(User(id=1, username='Emin', password='q1w2e3r4t5y6'))
+
+
+
+@app.before_request
+def before_request():
+    g.user = None
+
+    if 'user_id' in session:
+        user = [x for x in users if x.id == session['user_id']][0]
+        g.user = user
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        session.pop('user_id', None)
+
+        username = request.form['username']
+        password = request.form['password']
+
+        try:
+            user = [x for x in users if x.username == username][0]
+            if user and user.password == password:
+                session['user_id'] = user.id
+                return redirect(url_for('Index'))
+
+            return redirect(url_for('login'))
+        except: flash("user name or password is wrong","error")
+
+    return render_template('login.html')
+
+
 # This is the index route where we are going to
 @app.route('/search', methods=['GET'])
 def search():
+    if not g.user:
+        return redirect(url_for('login'))
     posts = Data.query.filter(Data.name.like(f'%{request.args.get("query")}%')).all()
     count = str(Data.query.filter(Data.name.like(f'%{request.args.get("query")}%')).count())
-    flash(count+" result")
+    flash(count + " result")
     return render_template("index.html", customers=posts)
 
 
 @app.route('/')
 def Index():
+    if not g.user:
+        return redirect(url_for('login'))
     all_data = Data.query.all()
 
     return render_template("index.html", customers=all_data)
@@ -45,6 +94,8 @@ def Index():
 # this route is for inserting data to  database via html forms
 @app.route('/insert', methods=['POST'])
 def insert():
+    if not g.user:
+        return redirect(url_for('login'))
     if request.method == 'POST':
         fname = request.form['fname']
         lname = request.form['lname']
@@ -63,11 +114,13 @@ def insert():
 # this is our update route where we are going to update our dats
 @app.route('/update', methods=['GET', 'POST'])
 def update():
+    if not g.user:
+        return redirect(url_for('login'))
     if request.method == 'POST':
         my_data = Data.query.get(request.form.get('id'))
         fname = request.form['fname']
         lname = request.form['lname']
-        my_data.name = " ".join([fname , lname])
+        my_data.name = " ".join([fname, lname])
         my_data.tcno = request.form['tcno']
         my_data.phone = request.form['phone']
 
@@ -80,6 +133,8 @@ def update():
 # This route is for deleting our data
 @app.route('/delete/<id>/', methods=['GET', 'POST'])
 def delete(id):
+    if not g.user:
+        return redirect(url_for('login'))
     my_data = Data.query.get(id)
     db.session.delete(my_data)
     db.session.commit()
@@ -87,24 +142,33 @@ def delete(id):
 
     return redirect(url_for('Index'))
 
+
 # last to functions are just for test
-@app.route('/random1000')
+@app.route('/randomuseradd')
 def randomuser():
-    for i in range(1000) :
+    if not g.user:
+        return redirect(url_for('login'))
+    time1 = time.time()
+    n = 1000
+    for i in range(n):
         a = functools.partial(random.randint, 0, 9)
-        gsm = lambda: "{}{}{}{}{}{}{}{}{}{}".format( a(), a(), a(), a(), a(), a(), a(), a(), a(), a())
+        gsm = lambda: "{}{}{}{}{}{}{}{}{}{}".format(a(), a(), a(), a(), a(), a(), a(), a(), a(), a())
         tcno = lambda: "{}{}{}{}{}{}{}{}{}{}{}".format(a(), a(), a(), a(), a(), a(), a(), a(), a(), a(), a())
 
         my_data = Data(names.get_full_name(), tcno(), gsm())
         db.session.add(my_data)
         db.session.commit()
+    time2 = time.time()
 
-    flash("1000 Customer Inserted Successfully")
+    flash(f"{str(n)} Customer Inserted Successfully.({str(round(time2 - time1, 2))} seconds took) ")
 
     return redirect(url_for('Index'))
 
+
 @app.route('/delete_all')
 def delete_all():
+    if not g.user:
+        return redirect(url_for('login'))
     db.drop_all()
     db.create_all()
     return redirect(url_for('Index'))
