@@ -1,6 +1,6 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session, g
+from flask import Flask, render_template, request, redirect, url_for, flash, session, g, jsonify
 from flask_sqlalchemy import SQLAlchemy
-import names, functools, random, time
+import names, functools, random, time,json
 
 app = Flask(__name__)
 app.secret_key = "Secret Key"
@@ -140,6 +140,18 @@ def delete(id):
     db.session.commit()
     flash("Customer Deleted Successfully")
 
+    return redirect(url_for('Index'))
+
+@app.route('/json_export')
+def json_export():
+    dct= {}
+    if not g.user:
+        return redirect(url_for('login'))
+    all_data = Data.query.all()
+    for i in all_data:
+        dct[i.id]={'name':i.name,'tcno':i.tcno,'phone':i.phone}
+    with open("customers.json", "w") as outfile:
+        json.dump(dct, outfile)
     return redirect(url_for('Index'))
 
 
